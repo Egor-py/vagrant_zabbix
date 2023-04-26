@@ -1,7 +1,7 @@
 Vagrant.configure("2") do |config|
   
   config.vm.define "zabbix_server" do |zabbix_server|
-    zabbix_server.vm.box = "ubuntu/trusty64"
+    zabbix_server.vm.box = "ubuntu/focal64"
     zabbix_server.vm.hostname = "zserver"
     zabbix_server.vm.network "private_network", ip: "192.168.56.40"
     zabbix_server.vm.network "forwarded_port", guest: 80, host: 24012

@@ -1,0 +1,15 @@
+-
+  hosts: server
+  become: true
+  roles:
+    - zabbix_server
+    - zabbix-web
+
+  vars:
+    zabbix_server_version: "5.2"
+    zabbix_database_type: mysql
+    zabbix_database_host: localhost
+    zabbix_database_port: ""
+    zabbix_database_name: zabbixdb
+    zabbix_database_user: zabbixuser
+    zabbix_database_password: 123456

@@ -1,0 +1,36 @@
+---
+- name: Install PHP
+  apt:
+    name:
+      - php-fpm
+      - php-mysql
+      - php-gd
+      - php-bcmath
+      - php-mbstring
+    state: installed
+  
+- name: Install Apache2
+  apt:
+    name:
+      - apache2
+      - apache2-utils
+      - libapache2-mod-php
+    state: installed
+
+- name: Configure Apache for Zabbix
+  template:
+    src: "apache2_zabbix.conf.j2"
+    dest: "/etc/apache2/sites-avalible/zabbix.conf"
+    mode: 0644
+
+- name: Enable Apache zabbix site
+  command: a2ensite zabbix.conf
+
+- name: Reload Apache
+  service: 
+    name: apache2
+    state: reloaded
+    
+
+
+

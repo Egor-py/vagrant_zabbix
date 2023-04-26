@@ -1,0 +1,42 @@
+---
+- name: Install zabbix server
+  apt:
+    name:
+      "zabbix-server-{{ zabbix_database_type }}"
+
+- name: Install zabbix frontend
+  apt:
+    name:
+      "zabbix-frontend-php"
+
+- name: Install database 
+  apt:
+    name: 
+      "{{ zabbix_database_name }}-server"
+  
+- name: Configure zabbix database
+  mysql_db:
+    name: "{{ zabbix_database_name }}"
+    state: present
+
+- name: Create zabbix database user
+  mysql_user:
+    name: "{{ zabbix_database_user }}"
+    host: "{{ zabbix_database_host }}"
+    password: "{{ zabbix_database_password }}"
+    priv: "{{ zabbix_database_name }}.*:ALL"
+    state: present
+
+- name: Set zabbix configuration variables
+  lineinfile:
+    path: /etc/zabbix/zabbix_server.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { regexp: '^DBHost=', line: 'DBHost={{ zabbix_database_host }}' }
+    - { regexp: '^DBPort=', line: 'DBPort={{ zabbix_database_port }}' }
+    - { regexp: '^DBName=', line: 'DBName={{ zabbix_database_name }}' }
+    - { regexp: '^DBUser=', line: 'DBUser={{ zabbix_database_user }}' }
+    - { regexp: '^DBPassword', line: 'DBPassword={{ zabbix_database_password }}' }
+    - { regexp: '^StartPollers=', line: 'StartPollers=20' }
+    - { regexp: '^StartPollersUnreachable=', line: 'StartPollersUnreachable=10' }
