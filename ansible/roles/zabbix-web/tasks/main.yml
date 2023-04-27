@@ -1,34 +1,39 @@
 ---
 - name: Install PHP
-  apt:
-    name:
-      - php-fpm
-      - php-mysql
-      - php-gd
-      - php-bcmath
-      - php-mbstring
-    state: installed
+  apt: pkg={{ item }} state=present
+  become: true
+  with_items:
+    - php-fpm
+    - php-mysql
+    - php-gd
+    - php-bcmath
+    - php-mbstring
   
 - name: Install Apache2
-  apt:
-    name:
-      - apache2
-      - apache2-utils
-      - libapache2-mod-php
-    state: installed
+  apt: pkg={{ item }} state=present
+  become: true
+  with_items:
+    - apache2
+    - apache2-utils
+    - libapache2-mod-php
+
+- name: Configure Apache for Zabbix
+  command: a2enconf zabbix-frontend-php
 
 - name: Configure Apache for Zabbix
   template:
-    src: "apache2_zabbix.conf.j2"
-    dest: "/etc/apache2/sites-avalible/zabbix.conf"
+    src: "php.ini"
+    dest: "/etc/php/7.4/apache2/"
     mode: 0644
-
-- name: Enable Apache zabbix site
-  command: a2ensite zabbix.conf
 
 - name: Reload Apache
   service: 
     name: apache2
+    state: reloaded
+
+- name: Reload Zabbix server
+  service:
+    name: zabbix-server
     state: reloaded
     
 

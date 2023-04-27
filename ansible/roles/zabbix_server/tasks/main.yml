@@ -1,4 +1,10 @@
 ---
+- name: Download Zabbix repo
+  get_url: url="{{ zabbix_server_version_deb }}" dest=/home/vagrant
+
+- name: Install Zabbix deb
+  apt: deb=/home/vagrant/zabbix-release_latest+ubuntu20.04_all.deb
+
 - name: Install zabbix server
   apt:
     name:
@@ -9,18 +15,48 @@
     name:
       "zabbix-frontend-php"
 
-- name: Install database 
-  apt:
-    name: 
-      "{{ zabbix_database_name }}-server"
-  
+- name: Install MySQL packages
+  apt: pkg={{ item }} state=present
+  become: true
+  with_items:
+    - bundler
+    - mysql-server
+    - mysql-client
+    - libmysqlclient-dev
+    - python3-mysqldb
+    - build-essential
+
+
+- name: Update mysql root password
+  mysql_user: 
+    login_user: root
+    login_password: "{{ zabbix_database_password }}" 
+    name: root 
+    password: "{{ zabbix_database_password }}" 
+    priv: "*.*:ALL,GRANT"
+
 - name: Configure zabbix database
   mysql_db:
+    login_user: root
+    login_password: "{{ zabbix_database_password }}"
     name: "{{ zabbix_database_name }}"
     state: present
 
+- name: Prepare schema
+  shell: zcat /usr/share/zabbix-server-mysql/schema.sql.gz > /usr/share/zabbix-server-mysql/schema.sql
+
+- name: Import schema
+  mysql_db:
+    login_user: root
+    login_password: "{{ zabbix_database_password }}"
+    name: "{{ zabbix_database_name }}"
+    state: import
+    target: /usr/share/zabbix-server-mysql/schema.sql
+
 - name: Create zabbix database user
   mysql_user:
+    login_user: root
+    login_password: "{{ zabbix_database_password }}"
     name: "{{ zabbix_database_user }}"
     host: "{{ zabbix_database_host }}"
     password: "{{ zabbix_database_password }}"

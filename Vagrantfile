@@ -24,7 +24,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define "zabbix_host_ubuntu" do |zabbix_host_ubuntu|
-    zabbix_host_ubuntu.vm.box = "ubuntu/trusty64"
+    zabbix_host_ubuntu.vm.box = "ubuntu/focal64"
     zabbix_host_ubuntu.vm.hostname = "zhostu"
     zabbix_host_ubuntu.vm.network "private_network", ip: "192.168.56.41"
     zabbix_host_ubuntu.vm.network "forwarded_port", guest: 80, host: 1234
@@ -34,7 +34,6 @@ Vagrant.configure("2") do |config|
     end
     config.vm.provision "file", source: "zabbix_key.pub", destination: "/home/vagrant/.ssh/"
     zabbix_host_ubuntu.vm.provision "shell", inline: <<-SHELL
-      sudo apt update && sudo apt --assume-yes install nginx
       chmod 600 /home/vagrant/.ssh/zabbix_key.pub
       cat /home/vagrant/.ssh/zabbix_key.pub >> /home/vagrant/.ssh/authorized_keys
     SHELL
