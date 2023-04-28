@@ -3,7 +3,7 @@
   get_url: url="{{ zabbix_server_version_deb }}" dest=/home/vagrant
 
 - name: Install Zabbix deb
-  apt: deb=/home/vagrant/zabbix-release_latest+ubuntu20.04_all.deb
+  command: dpkg -i /home/vagrant/zabbix-release_6.0-4+ubuntu20.04_all.deb
 
 - name: Install zabbix server
   apt:
