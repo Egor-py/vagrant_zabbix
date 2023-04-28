@@ -1,67 +1,91 @@
 ---
-- name: Download Zabbix repo
-  get_url: url="{{ zabbix_server_version_deb }}" dest=/home/vagrant
+- name: Dowload zabbix repo
+  get_url: url="https://repo.zabbix.com/zabbix/6.0/ubuntu/pool/main/z/zabbix-release/zabbix-release_6.0-4+ubuntu20.04_all.deb" dest=/home/vagrant
 
-- name: Install Zabbix deb
+- name: Install zabbix deb
   command: dpkg -i /home/vagrant/zabbix-release_6.0-4+ubuntu20.04_all.deb
 
-- name: Install zabbix server
+- name: Update packeges
+  become: true
   apt:
-    name:
-      "zabbix-server-{{ zabbix_database_type }}"
+    upgrade: yes
+    update_cache: yes
 
-- name: Install zabbix frontend
-  apt:
-    name:
-      "zabbix-frontend-php"
-
-- name: Install MySQL packages
+- name: Install Zabbix server, frontend, agent
   apt: pkg={{ item }} state=present
   become: true
   with_items:
-    - bundler
-    - mysql-server
-    - mysql-client
-    - libmysqlclient-dev
-    - python3-mysqldb
-    - build-essential
+    - zabbix-server-pgsql
+    - zabbix-frontend-php
+    - php7.4-pgsql
+    - zabbix-apache-conf
+    - zabbix-sql-scripts
+    - zabbix-agent
 
+- name: Install postrges 
+  apt: pkg={{ item }} state=present
+  become: true
+  with_items:
+    - postgresql
+    - postgresql-contrib
+    - python3-pip
+    - python3-dev
+    - python3-venv
+    - python3-psycopg2
 
-- name: Update mysql root password
-  mysql_user: 
-    login_user: root
-    login_password: "{{ zabbix_database_password }}" 
-    name: root 
-    password: "{{ zabbix_database_password }}" 
-    priv: "*.*:ALL,GRANT"
+- name: Configure postgres pg_hba.conf
+  become: true
+  template:
+    src: "pg_hba.conf"
+    dest: "/etc/postgresql/12/main/"
+    mode: 0644
 
-- name: Configure zabbix database
-  mysql_db:
-    login_user: root
-    login_password: "{{ zabbix_database_password }}"
-    name: "{{ zabbix_database_name }}"
+- name: Configure postgres postrgesql.conf
+  lineinfile:
+    path: /etc/postgresql/12/main/postgresql.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { regexp: "^# listen_addresses = 'localhost'", line: "listen_addresses = '*'" }
+
+- name: Ensure the PostgreSQL service is running 
+  service: 
+    name: postgresql
+    state: started 
+    enabled: yes
+
+- name: Create DB user
+  become: true
+  become_user: postgres
+  postgresql_user:
+    state: present
+    login_user: postgres
+    login_password: postgres
+    name: zabbix
+    password: password
+    role_attr_flags: SUPERUSER
+
+- name: Create zabbix DB
+  become: true
+  become_user: postgres
+  postgresql_db:
+    login_user: postgres
+    login_password: postgres
+    name: zabbix
     state: present
 
-- name: Prepare schema
-  shell: zcat /usr/share/zabbix-server-mysql/schema.sql.gz > /usr/share/zabbix-server-mysql/schema.sql
+- name: Prepare public schema
+  shell: zcat /usr/share/zabbix-sql-scripts/postgresql/server.sql.gz > /home/vagrant/server.sql
 
 - name: Import schema
-  mysql_db:
-    login_user: root
-    login_password: "{{ zabbix_database_password }}"
-    name: "{{ zabbix_database_name }}"
-    state: import
-    target: /usr/share/zabbix-server-mysql/schema.sql
-
-- name: Create zabbix database user
-  mysql_user:
-    login_user: root
-    login_password: "{{ zabbix_database_password }}"
-    name: "{{ zabbix_database_user }}"
-    host: "{{ zabbix_database_host }}"
-    password: "{{ zabbix_database_password }}"
-    priv: "{{ zabbix_database_name }}.*:ALL"
-    state: present
+  become: true
+  become_user: postgres
+  postgresql_db:
+    login_user: postgres
+    login_password: postgres
+    name: zabbix
+    state: restore
+    target: /home/vagrant/server.sql
 
 - name: Set zabbix configuration variables
   lineinfile:
@@ -69,10 +93,34 @@
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
   with_items:
-    - { regexp: '^DBHost=', line: 'DBHost={{ zabbix_database_host }}' }
-    - { regexp: '^DBPort=', line: 'DBPort={{ zabbix_database_port }}' }
-    - { regexp: '^DBName=', line: 'DBName={{ zabbix_database_name }}' }
-    - { regexp: '^DBUser=', line: 'DBUser={{ zabbix_database_user }}' }
-    - { regexp: '^DBPassword', line: 'DBPassword={{ zabbix_database_password }}' }
-    - { regexp: '^StartPollers=', line: 'StartPollers=20' }
-    - { regexp: '^StartPollersUnreachable=', line: 'StartPollersUnreachable=10' }
+    - { regexp: '^DBHost=', line: 'DBHost=localhost' }
+    - { regexp: '^DBName=', line: 'DBName=zabbix' }
+    - { regexp: '^DBUser=', line: 'DBUser=zabbix' }
+    - { regexp: '^DBPassword', line: 'DBPassword=password' } 
+
+- name: Configure Apache for Zabbix
+  template:
+    src: "php.ini"
+    dest: "/etc/php/7.4/apache2/"
+    mode: 0644
+
+#- name: Configure PHP for Zabbix frontend
+#  lineinfile:
+#    path: /etc/zabbix/nginx.conf
+#    regexp: "{{ item.regexp }}"
+#    line: "{{ item.line }}"
+#  with_items:
+#    - { regexp: '^# listen 8080;', line: 'listen 8080;' }
+#    - { regexp: '^# server_name example.com;', line: 'server_name zabbix.com;' }
+
+- name: Restart servises
+  service:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+  with_items:
+    - zabbix-server
+    - zabbix-agent
+    - apache2
+  
+

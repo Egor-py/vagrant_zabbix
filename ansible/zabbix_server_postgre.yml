@@ -1,0 +1,8 @@
+-
+  hosts: localhost
+  become: true
+  roles:
+    - zabbix_server
+
+  vars:
+    php_timezone: Europe/Moscow
