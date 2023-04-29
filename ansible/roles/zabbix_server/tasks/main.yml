@@ -5,6 +5,12 @@
 - name: Install zabbix deb
   command: dpkg -i /home/vagrant/zabbix-release_6.0-4+ubuntu20.04_all.deb
 
+- name: Add the repository that provides PostgreSQL 14
+  shell: sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+
+- name: Import the GPG signing key
+  shell: wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+
 - name: Update packeges
   become: true
   apt:
@@ -22,11 +28,12 @@
     - zabbix-sql-scripts
     - zabbix-agent
 
+
 - name: Install postrges 
   apt: pkg={{ item }} state=present
   become: true
   with_items:
-    - postgresql
+    - postgresql-14
     - postgresql-contrib
     - python3-pip
     - python3-dev
@@ -37,12 +44,12 @@
   become: true
   template:
     src: "pg_hba.conf"
-    dest: "/etc/postgresql/12/main/"
+    dest: "/etc/postgresql/14/main/"
     mode: 0644
 
 - name: Configure postgres postrgesql.conf
   lineinfile:
-    path: /etc/postgresql/12/main/postgresql.conf
+    path: /etc/postgresql/14/main/postgresql.conf
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
   with_items:

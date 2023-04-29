@@ -1,0 +1,9 @@
+-
+  hosts: host
+  become: true
+  roles:
+    - zabbix-agent-ubuntu
+
+  vars:
+    ip_zabbix_server: 192.168.56.40
+    
