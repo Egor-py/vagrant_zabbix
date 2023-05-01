@@ -42,21 +42,73 @@ Vagrant.configure("2") do |config|
     SHELL
   end
 
-  config.vm.define "zabbix_host_openwrt" do |zabbix_host_openwrt|
-    zabbix_host_openwrt.vm.box = "vladimir-babichev/openwrt-21.02"
-    zabbix_host_openwrt.vm.hostname = "H1"
-    zabbix_host_openwrt.vm.network "private_network", ip: "192.168.56.42"
-    zabbix_host_openwrt.vm.network "forwarded_port", guest: 80, host: 24015
-    zabbix_host_openwrt.vm.provider "virtualbox" do |vb|
+  config.vm.define "h1" do |h1|
+    h1.vm.box = "vladimir-babichev/openwrt-21.02"
+    h1.vm.hostname = "H1"
+    h1.vm.provider "virtualbox" do |vb|
       vb.cpus = "1"
       vb.memory = "124"
+      vb.customize ["modifyvm", :id, "--nic2", "nat"]
     end
-    zabbix_host_openwrt.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
-    zabbix_host_openwrt.vm.provision "shell", inline: <<-SHELL
+    h1.vm.provision "shell", inline: <<-SHELL
+      uci set network.lan=interface
+      uci set network.lan.type=bridge
+      uci set network.lan.proto=static
+      uci set network.lan.ipaddr=10.0.11.2
+      uci set network.lan.netmask=255.255.255.0
+      uci set network.lan.device=eth1
+      uci commit network
+    SHELL
+    h1.vm.provision "shell", inline: <<-SHELL
+      uci add network route
+      uci set network.@route[-1].interface=lan
+      uci set network.@route[-1].target=10.0.0.0/8
+      uci set network.@route[-1].gateway=10.0.11.1
+      uci commit network
+    SHELL
+    h1.vm.network "forwarded_port", guest: 80, host: 24015
+    h1.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    h1.vm.provision "shell", inline: <<-SHELL
       sudo opkg update
       sudo opkg install python3
       chmod 600 /root/.ssh/zabbix_key.pub
       cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
+      /etc/init.d/network restart
+    SHELL
+  end
+
+  config.vm.define "r1" do |r1|
+    r1.vm.box = "vladimir-babichev/openwrt-21.02"
+    r1.vm.hostname = "R1"
+    r1.vm.provider "virtualbox" do |vb|
+      vb.cpus = "1"
+      vb.memory = "124"
+      vb.customize ["modifyvm", :id, "--nic2", "nat"]
+    end
+    r1.vm.provision "shell", inline: <<-SHELL
+      uci set network.lan=interface
+      uci set network.lan.type=bridge
+      uci set network.lan.proto=static
+      uci set network.lan.ipaddr=10.0.11.1
+      uci set network.lan.netmask=255.255.255.0
+      uci set network.lan.device=eth1
+      uci commit network
+    SHELL
+    #r1.vm.provision "shell", inline: <<-SHELL
+    #  uci add network route
+    #  uci set network.@route[-1].interface=lan
+    #  uci set network.@route[-1].target=10.0.0.0/8
+    #  uci set network.@route[-1].gateway=10.0.11.1
+    #  uci commit network
+    #SHELL
+    r1.vm.network "forwarded_port", guest: 80, host: 24016
+    r1.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    r1.vm.provision "shell", inline: <<-SHELL
+      sudo opkg update
+      sudo opkg install python3
+      chmod 600 /root/.ssh/zabbix_key.pub
+      cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
+      /etc/init.d/network restart
     SHELL
   end
 
