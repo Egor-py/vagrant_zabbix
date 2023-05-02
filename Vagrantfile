@@ -3,7 +3,7 @@ Vagrant.configure("2") do |config|
   config.vm.define "zabbix_server" do |zabbix_server|
     zabbix_server.vm.box = "ubuntu/focal64"
     zabbix_server.vm.hostname = "zserver"
-    zabbix_server.vm.network "private_network", ip: "192.168.56.40"
+    zabbix_server.vm.network "public_network", ip: "10.0.12.3", inline: "route add option gw 10.0.12.1"
     zabbix_server.vm.network "forwarded_port", guest: 80, host: 24012
     zabbix_server.vm.provider "virtualbox" do |vb|
       vb.cpus = "1"
@@ -19,6 +19,7 @@ Vagrant.configure("2") do |config|
       sudo apt update && sudo apt --assume-yes install ansible
       chmod 600 /home/vagrant/.ssh/zabbix_key
       chmod 600 /home/vagrant/.ssh/zabbix_key.pub
+      #net.ipv4.ip_forward=1
     SHELL
     zabbix_server.vm.provision "file", source: "./ansible", destination: "/home/vagrant/"
   end
@@ -139,6 +140,10 @@ Vagrant.configure("2") do |config|
       chmod 600 /root/.ssh/zabbix_key.pub
       cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
       /etc/init.d/network restart
+
+      uci set firewall.@defaults[-1].forward='ACCEPT'
+      uci commit firewall
+      service firewall restart
     SHELL
   end
 
@@ -159,6 +164,10 @@ Vagrant.configure("2") do |config|
       chmod 600 /root/.ssh/zabbix_key.pub
       cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
       /etc/init.d/network restart
+
+      uci set firewall.@defaults[-1].forward='ACCEPT'
+      uci commit firewall
+      service firewall restart
     SHELL
   end 
 

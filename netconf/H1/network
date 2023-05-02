@@ -1,6 +1,7 @@
 config interface 'lan'
         option ifname 'eth0'
         option proto 'dhcp'
+        list dns '1.1.1.1'
 
 config interface 'N11'
         option proto 'static'
