@@ -48,27 +48,92 @@ Vagrant.configure("2") do |config|
     h1.vm.provider "virtualbox" do |vb|
       vb.cpus = "1"
       vb.memory = "124"
-      vb.customize ["modifyvm", :id, "--nic2", "nat"]
+      vb.customize ["modifyvm", :id, "--nic2", "intnet"]
     end
-    h1.vm.provision "shell", inline: <<-SHELL
-      uci set network.lan=interface
-      uci set network.lan.type=bridge
-      uci set network.lan.proto=static
-      uci set network.lan.ipaddr=10.0.11.2
-      uci set network.lan.netmask=255.255.255.0
-      uci set network.lan.device=eth1
-      uci commit network
-    SHELL
-    h1.vm.provision "shell", inline: <<-SHELL
-      uci add network route
-      uci set network.@route[-1].interface=lan
-      uci set network.@route[-1].target=10.0.0.0/8
-      uci set network.@route[-1].gateway=10.0.11.1
-      uci commit network
-    SHELL
     h1.vm.network "forwarded_port", guest: 80, host: 24015
     h1.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    h1.vm.provision "file", source: "netconf/H1/network", destination: "/etc/config/"
     h1.vm.provision "shell", inline: <<-SHELL
+      sudo opkg update
+      sudo opkg install python3
+      chmod 600 /root/.ssh/zabbix_key.pub
+      cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
+      /etc/init.d/network restart
+    SHELL
+  end 
+
+  config.vm.define "h2" do |h2|
+    h2.vm.box = "vladimir-babichev/openwrt-21.02"
+    h2.vm.hostname = "H2"
+    h2.vm.provider "virtualbox" do |vb|
+      vb.cpus = "1"
+      vb.memory = "124"
+      vb.customize ["modifyvm", :id, "--nic2", "intnet"]
+    end
+    h2.vm.network "forwarded_port", guest: 80, host: 24016
+    h2.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    h2.vm.provision "file", source: "netconf/H2/network", destination: "/etc/config/"
+    h2.vm.provision "shell", inline: <<-SHELL
+      sudo opkg update
+      sudo opkg install python3
+      chmod 600 /root/.ssh/zabbix_key.pub
+      cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
+      /etc/init.d/network restart
+    SHELL
+  end 
+
+  config.vm.define "h3" do |h3|
+    h3.vm.box = "vladimir-babichev/openwrt-21.02"
+    h3.vm.hostname = "H3"
+    h3.vm.provider "virtualbox" do |vb|
+      vb.cpus = "1"
+      vb.memory = "124"
+      vb.customize ["modifyvm", :id, "--nic2", "intnet"]
+    end
+    h3.vm.network "forwarded_port", guest: 80, host: 24017
+    h3.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    h3.vm.provision "file", source: "netconf/H3/network", destination: "/etc/config/"
+    h3.vm.provision "shell", inline: <<-SHELL
+      sudo opkg update
+      sudo opkg install python3
+      chmod 600 /root/.ssh/zabbix_key.pub
+      cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
+      /etc/init.d/network restart
+    SHELL
+  end 
+
+  config.vm.define "h4" do |h4|
+    h4.vm.box = "vladimir-babichev/openwrt-21.02"
+    h4.vm.hostname = "H4"
+    h4.vm.provider "virtualbox" do |vb|
+      vb.cpus = "1"
+      vb.memory = "124"
+      vb.customize ["modifyvm", :id, "--nic2", "intnet"]
+    end
+    h4.vm.network "forwarded_port", guest: 80, host: 24018
+    h4.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    h4.vm.provision "file", source: "netconf/H4/network", destination: "/etc/config/"
+    h4.vm.provision "shell", inline: <<-SHELL
+      sudo opkg update
+      sudo opkg install python3
+      chmod 600 /root/.ssh/zabbix_key.pub
+      cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
+      /etc/init.d/network restart
+    SHELL
+  end 
+
+  config.vm.define "r1" do |r1|
+    r1.vm.box = "vladimir-babichev/openwrt-21.02"
+    r1.vm.hostname = "R1"
+    r1.vm.provider "virtualbox" do |vb|
+      vb.cpus = "1"
+      vb.memory = "124"
+      vb.customize ["modifyvm", :id, "--nic2", "intnet"]
+    end
+    r1.vm.network "forwarded_port", guest: 80, host: 24019
+    r1.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    r1.vm.provision "file", source: "netconf/R1/network", destination: "/etc/config/"
+    r1.vm.provision "shell", inline: <<-SHELL
       sudo opkg update
       sudo opkg install python3
       chmod 600 /root/.ssh/zabbix_key.pub
@@ -77,40 +142,25 @@ Vagrant.configure("2") do |config|
     SHELL
   end
 
-  config.vm.define "r1" do |r1|
-    r1.vm.box = "vladimir-babichev/openwrt-21.02"
-    r1.vm.hostname = "R1"
-    r1.vm.provider "virtualbox" do |vb|
+  config.vm.define "r2" do |r2|
+    r2.vm.box = "vladimir-babichev/openwrt-21.02"
+    r2.vm.hostname = "R2"
+    r2.vm.provider "virtualbox" do |vb|
       vb.cpus = "1"
       vb.memory = "124"
-      vb.customize ["modifyvm", :id, "--nic2", "nat"]
+      vb.customize ["modifyvm", :id, "--nic2", "intnet"]
     end
-    r1.vm.provision "shell", inline: <<-SHELL
-      uci set network.lan=interface
-      uci set network.lan.type=bridge
-      uci set network.lan.proto=static
-      uci set network.lan.ipaddr=10.0.11.1
-      uci set network.lan.netmask=255.255.255.0
-      uci set network.lan.device=eth1
-      uci commit network
-    SHELL
-    #r1.vm.provision "shell", inline: <<-SHELL
-    #  uci add network route
-    #  uci set network.@route[-1].interface=lan
-    #  uci set network.@route[-1].target=10.0.0.0/8
-    #  uci set network.@route[-1].gateway=10.0.11.1
-    #  uci commit network
-    #SHELL
-    r1.vm.network "forwarded_port", guest: 80, host: 24016
-    r1.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
-    r1.vm.provision "shell", inline: <<-SHELL
+    r2.vm.network "forwarded_port", guest: 80, host: 24020
+    r2.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    r2.vm.provision "file", source: "netconf/R2/network", destination: "/etc/config/"
+    r2.vm.provision "shell", inline: <<-SHELL
       sudo opkg update
       sudo opkg install python3
       chmod 600 /root/.ssh/zabbix_key.pub
       cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
       /etc/init.d/network restart
     SHELL
-  end
+  end 
 
 
 end

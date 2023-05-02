@@ -1,0 +1,16 @@
+config interface 'lan'
+        option ifname 'eth0'
+        option proto 'dhcp'
+
+config interface 'N13'
+        option proto 'static'
+        option device 'eth1'
+        option ipaddr '10.0.13.2'
+        option netmask '255.255.255.0'
+        option delegate '0'
+        
+config route
+        option interface 'N13'
+        option target '10.0.0.0'
+        option netmask '255.0.0.0'
+        option gateway '10.0.13.1'
