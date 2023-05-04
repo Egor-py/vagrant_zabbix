@@ -1,23 +1,23 @@
 ---
-- name: Update packadge
-  become: true
-  apt: 
-    upgrade: yes
-    update_cache: yes 
-
 - name: Install Zabbix-agent service 
   become: true
-  apt:
-    name: zabbix-agent
+  opkg:
+    name: zabbix-agentd
     state: present
+    update_cache: yes
+
 
 - name: Configure Zabbix Agent
   become: true
   lineinfile:
-    path: "/etc/zabbix/zabbix_agentd.conf"
+    path: "/etc/zabbix_agentd.conf"
     line: "{{ item }}"
   with_items: 
     - "Server={{ ip_zabbix_server }}"
     - "Hostname={{ inventory_hostname }}"
     - "ServerActive={{ ip_zabbix_server }}"
-  notify: restart zabbix agent service
+
+- name: Restart Zabbix-agent 
+  service:
+    name: zabbix_agentd
+    state: restarted

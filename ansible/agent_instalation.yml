@@ -2,8 +2,8 @@
   hosts: host
   become: true
   roles:
-    - zabbix-agent-ubuntu
+    - zabbix-agent-openwrt
 
   vars:
-    ip_zabbix_server: 192.168.56.40
+    ip_zabbix_server: 10.0.12.3
     

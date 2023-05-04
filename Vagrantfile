@@ -3,44 +3,29 @@ Vagrant.configure("2") do |config|
   config.vm.define "zabbix_server" do |zabbix_server|
     zabbix_server.vm.box = "ubuntu/focal64"
     zabbix_server.vm.hostname = "zserver"
-    zabbix_server.vm.network "public_network", ip: "10.0.12.3", inline: "route add option gw 10.0.12.1"
+    zabbix_server.vm.network "private_network", ip: "192.168.56.100"
     zabbix_server.vm.network "forwarded_port", guest: 80, host: 24012
     zabbix_server.vm.provider "virtualbox" do |vb|
       vb.cpus = "1"
       vb.memory = "1024"
+      vb.customize ["modifyvm", :id, "--nic3", "intnet"]
     end
     zabbix_server.vm.provision "shell", inline: <<-SHELL
       sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
       service ssh restart
     SHELL
-    config.vm.provision "file", source: "zabbix_key", destination: "/home/vagrant/.ssh/"
-    config.vm.provision "file", source: "zabbix_key.pub", destination: "/home/vagrant/.ssh/"
+    zabbix_server.vm.provision "file", source: "zabbix_key", destination: "/home/vagrant/.ssh/"
+    zabbix_server.vm.provision "file", source: "zabbix_key.pub", destination: "/home/vagrant/.ssh/"
+    zabbix_server.vm.provision "file", source: "netconf/zabbix_server/50-vagrant.yaml", destination: "/home/vagrant/"
     zabbix_server.vm.provision "shell", inline: <<-SHELL
       sudo apt update && sudo apt --assume-yes install ansible
       chmod 600 /home/vagrant/.ssh/zabbix_key
       chmod 600 /home/vagrant/.ssh/zabbix_key.pub
-      #net.ipv4.ip_forward=1
+      sudo cp 50-vagrant.yaml /etc/netplan/
+      sudo netplan generate
+      sudo netplan apply
     SHELL
     zabbix_server.vm.provision "file", source: "./ansible", destination: "/home/vagrant/"
-  end
-
-  config.vm.define "zabbix_host_ubuntu" do |zabbix_host_ubuntu|
-    zabbix_host_ubuntu.vm.box = "ubuntu/focal64"
-    zabbix_host_ubuntu.vm.hostname = "zhostu"
-    zabbix_host_ubuntu.vm.network "public_network", ip: "192.168.0.201"
-    zabbix_host_ubuntu.vm.provision "shell", 
-      run: "always", 
-      inline: "route add default gw 192.168.0.1"
-    zabbix_host_ubuntu.vm.network "forwarded_port", guest: 80, host: 1234
-    zabbix_host_ubuntu.vm.provider "virtualbox" do |vb|
-      vb.cpus = "1"
-      vb.memory = "1024"
-    end
-    config.vm.provision "file", source: "zabbix_key.pub", destination: "/home/vagrant/.ssh/"
-    zabbix_host_ubuntu.vm.provision "shell", inline: <<-SHELL
-      chmod 600 /home/vagrant/.ssh/zabbix_key.pub
-      cat /home/vagrant/.ssh/zabbix_key.pub >> /home/vagrant/.ssh/authorized_keys
-    SHELL
   end
 
   config.vm.define "h1" do |h1|
@@ -52,13 +37,13 @@ Vagrant.configure("2") do |config|
       vb.customize ["modifyvm", :id, "--nic2", "intnet"]
     end
     h1.vm.network "forwarded_port", guest: 80, host: 24015
-    h1.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    h1.vm.provision "file", source: "zabbix_key.pub", destination: "/root/"
     h1.vm.provision "file", source: "netconf/H1/network", destination: "/etc/config/"
     h1.vm.provision "shell", inline: <<-SHELL
       sudo opkg update
       sudo opkg install python3
-      chmod 600 /root/.ssh/zabbix_key.pub
-      cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
+      chmod 600 /root/zabbix_key.pub
+      cat /root/zabbix_key.pub >> /etc/dropbear/authorized_keys
       /etc/init.d/network restart
     SHELL
   end 
@@ -72,14 +57,14 @@ Vagrant.configure("2") do |config|
       vb.customize ["modifyvm", :id, "--nic2", "intnet"]
     end
     h2.vm.network "forwarded_port", guest: 80, host: 24016
-    h2.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    h2.vm.provision "file", source: "zabbix_key.pub", destination: "/root/"
     h2.vm.provision "file", source: "netconf/H2/network", destination: "/etc/config/"
     h2.vm.provision "shell", inline: <<-SHELL
+      /etc/init.d/network restart
       sudo opkg update
       sudo opkg install python3
-      chmod 600 /root/.ssh/zabbix_key.pub
-      cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
-      /etc/init.d/network restart
+      chmod 600 /root/zabbix_key.pub
+      cat /root/zabbix_key.pub >> /etc/dropbear/authorized_keys
     SHELL
   end 
 
@@ -92,14 +77,14 @@ Vagrant.configure("2") do |config|
       vb.customize ["modifyvm", :id, "--nic2", "intnet"]
     end
     h3.vm.network "forwarded_port", guest: 80, host: 24017
-    h3.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    h3.vm.provision "file", source: "zabbix_key.pub", destination: "/root/"
     h3.vm.provision "file", source: "netconf/H3/network", destination: "/etc/config/"
     h3.vm.provision "shell", inline: <<-SHELL
+      /etc/init.d/network restart
       sudo opkg update
       sudo opkg install python3
-      chmod 600 /root/.ssh/zabbix_key.pub
-      cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
-      /etc/init.d/network restart
+      chmod 600 /root/zabbix_key.pub
+      cat /root/zabbix_key.pub >> /etc/dropbear/authorized_keys
     SHELL
   end 
 
@@ -112,14 +97,14 @@ Vagrant.configure("2") do |config|
       vb.customize ["modifyvm", :id, "--nic2", "intnet"]
     end
     h4.vm.network "forwarded_port", guest: 80, host: 24018
-    h4.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    h4.vm.provision "file", source: "zabbix_key.pub", destination: "/root/"
     h4.vm.provision "file", source: "netconf/H4/network", destination: "/etc/config/"
     h4.vm.provision "shell", inline: <<-SHELL
+      /etc/init.d/network restart
       sudo opkg update
       sudo opkg install python3
-      chmod 600 /root/.ssh/zabbix_key.pub
-      cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
-      /etc/init.d/network restart
+      chmod 600 /root/zabbix_key.pub
+      cat /root/zabbix_key.pub >> /etc/dropbear/authorized_keys
     SHELL
   end 
 
@@ -132,18 +117,18 @@ Vagrant.configure("2") do |config|
       vb.customize ["modifyvm", :id, "--nic2", "intnet"]
     end
     r1.vm.network "forwarded_port", guest: 80, host: 24019
-    r1.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    r1.vm.provision "file", source: "zabbix_key.pub", destination: "/root/"
     r1.vm.provision "file", source: "netconf/R1/network", destination: "/etc/config/"
     r1.vm.provision "shell", inline: <<-SHELL
+      /etc/init.d/network restart
       sudo opkg update
       sudo opkg install python3
-      chmod 600 /root/.ssh/zabbix_key.pub
-      cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
-      /etc/init.d/network restart
+      chmod 600 /root/zabbix_key.pub
+      cat /root/zabbix_key.pub >> /etc/dropbear/authorized_keys
 
       uci set firewall.@defaults[-1].forward='ACCEPT'
       uci commit firewall
-      service firewall restart
+      /etc/init.d/firewall restart
     SHELL
   end
 
@@ -156,20 +141,19 @@ Vagrant.configure("2") do |config|
       vb.customize ["modifyvm", :id, "--nic2", "intnet"]
     end
     r2.vm.network "forwarded_port", guest: 80, host: 24020
-    r2.vm.provision "file", source: "zabbix_key.pub", destination: "/root/.ssh/"
+    r2.vm.provision "file", source: "zabbix_key.pub", destination: "/root/"
     r2.vm.provision "file", source: "netconf/R2/network", destination: "/etc/config/"
     r2.vm.provision "shell", inline: <<-SHELL
+      /etc/init.d/network restart
       sudo opkg update
       sudo opkg install python3
-      chmod 600 /root/.ssh/zabbix_key.pub
-      cat /root/.ssh/zabbix_key.pub >> /root/.ssh/authorized_keys
-      /etc/init.d/network restart
+      chmod 600 /root/zabbix_key.pub
+      cat /root/zabbix_key.pub >> /etc/dropbear/authorized_keys
 
       uci set firewall.@defaults[-1].forward='ACCEPT'
       uci commit firewall
-      service firewall restart
+      /etc/init.d/firewall restart
     SHELL
   end 
-
 
 end
