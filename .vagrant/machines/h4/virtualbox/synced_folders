@@ -1,1 +1,0 @@
-{"rsync":{"/root":{"type":"rsync","rsync__exclude":".git/","guestpath":"/root","hostpath":"/Users/macbook/Documents/git/vagrant_zabbix","disabled":false,"__vagrantfile":true,"exclude":".git/","owner":"root","group":"root"}}}

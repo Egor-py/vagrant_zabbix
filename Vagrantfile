@@ -19,6 +19,8 @@ Vagrant.configure("2") do |config|
     zabbix_server.vm.provision "file", source: "netconf/zabbix_server/50-vagrant.yaml", destination: "/home/vagrant/"
     zabbix_server.vm.provision "shell", inline: <<-SHELL
       sudo apt update && sudo apt --assume-yes install ansible
+      sudo sysctl -w net.ipv4.ip_forward=1
+      sudo sysctl -p 
       chmod 600 /home/vagrant/.ssh/zabbix_key
       chmod 600 /home/vagrant/.ssh/zabbix_key.pub
       sudo cp 50-vagrant.yaml /etc/netplan/
@@ -26,6 +28,26 @@ Vagrant.configure("2") do |config|
       sudo netplan apply
     SHELL
     zabbix_server.vm.provision "file", source: "./ansible", destination: "/home/vagrant/"
+  end
+
+  config.vm.define "icinga_server" do |icinga_server|
+    icinga_server.vm.box = "ubuntu/focal64"
+    icinga_server.vm.hostname = "iciserver"
+    icinga_server.vm.network "forwarded_port", guest: 80, host: 24021
+    icinga_server.vm.provider "virtualbox" do |vb|
+      vb.cpus = "1"
+      vb.memory = "1024"
+    end
+    icinga_server.vm.provision "file", source: "zabbix_key", destination: "/home/vagrant/.ssh/"
+    icinga_server.vm.provision "file", source: "zabbix_key.pub", destination: "/home/vagrant/.ssh/"
+    icinga_server.vm.provision "shell", inline: <<-SHELL
+      sudo apt update && sudo apt --assume-yes install ansible
+      sudo sysctl -w net.ipv4.ip_forward=1
+      sudo sysctl -p 
+      chmod 600 /home/vagrant/.ssh/zabbix_key
+      chmod 600 /home/vagrant/.ssh/zabbix_key.pub
+    SHELL
+    icinga_server.vm.provision "file", source: "./ansible", destination: "/home/vagrant/"
   end
 
   config.vm.define "h1" do |h1|

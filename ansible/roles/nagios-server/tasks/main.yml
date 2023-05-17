@@ -1,0 +1,100 @@
+---
+- name: Update packeges
+  become: true
+  apt: 
+    upgrade: yes
+    update_cache: yes
+
+- name: Install pre-requisite packages
+  apt: pkg={{ item }} state=present
+  become: true
+  with_items:
+    - autoconf 
+    - gcc 
+    - libc6 
+    - make
+    - wget
+    - unzip
+    - apache2
+    - php
+    - libapache2-mod-php7.4
+    - libgd-dev
+    - openssl
+    - libssl-dev
+    - nagios-nrpe-server
+
+- name: Dowmload the source
+  get_url: url="https://github.com/NagiosEnterprises/nagioscore/archive/nagios-4.4.6.tar.gz" dest=/home/vagrant
+
+- name: Extract nagios-4.4.6.tar.gz into /tmp
+  become: true
+  unarchive: 
+    src: /home/vagrant/nagioscore-nagios-4.4.6.tar.gz
+    dest: /tmp
+
+- name: Compile module
+  become: true
+  shell: /tmp/nagioscore-nagios-4.4.6/configure --with-httpd-conf=/etc/apache2/sites-enabled
+  
+- name: Make all 
+  become: true
+  make:
+    chdir: /tmp/nagioscore-nagios-4.4.6
+    target: all   
+
+- name: Create User and Group 
+  become: true
+  make:
+    chdir: /tmp/nagioscore-nagios-4.4.6
+    target: install-groups-users
+  
+- name: usermode
+  become: true
+  shell: usermod -a -G nagios www-data
+
+- name: install binaries, deamon and command mode
+  become: true
+  make:
+    chdir: /tmp/nagioscore-nagios-4.4.6
+    target: "{{ item }}"
+  with_items:
+    - install
+    - install-daemoninit
+    - install-commandmode
+    - install-config
+    - install-webconf
+
+- name: Apache config files
+  become: true
+  apache2_module:
+    state: present
+    name: "{{ item }}"
+  with_items:
+    - rewrite
+    - cgi
+
+- name: Create Nagios admin user account
+  shell: sudo htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin
+
+- name: Restart Services
+  become: true
+  service: 
+    name: "{{ item }}"
+    state: restarted
+  with_items:
+    - apache2
+    - nagios-nrpe-server
+
+- name: Start Nagios Deamon
+  become: true
+  service:
+    name: nagios
+    state: started
+
+
+
+
+
+
+
+
