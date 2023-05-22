@@ -23,7 +23,7 @@
     - libssl-dev
     - nagios-nrpe-server
 
-- name: Dowmload the source
+- name: Download the source
   get_url: url="https://github.com/NagiosEnterprises/nagioscore/archive/nagios-4.4.6.tar.gz" dest=/home/vagrant
 
 - name: Extract nagios-4.4.6.tar.gz into /tmp
@@ -34,13 +34,7 @@
 
 - name: Compile module
   become: true
-  shell: /tmp/nagioscore-nagios-4.4.6/configure --with-httpd-conf=/etc/apache2/sites-enabled
-  
-- name: Make all 
-  become: true
-  make:
-    chdir: /tmp/nagioscore-nagios-4.4.6
-    target: all   
+  shell: cd /tmp/nagioscore-nagios-4.4.6; ./configure --with-httpd-conf=/etc/apache2/sites-enabled; make all;
 
 - name: Create User and Group 
   become: true
@@ -75,6 +69,20 @@
 
 - name: Create Nagios admin user account
   shell: sudo htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin
+
+
+- name: Install nagios plugins
+  get_url: url="http://www.nagios-plugins.org/download/nagios-plugins-2.1.1.tar.gz" dest=/home/vagrant
+
+- name: Extract nagios-plugins-2.1.1.tar.gz into /tmp
+  become: true
+  unarchive: 
+    src: /home/vagrant/nagios-plugins-2.1.1.tar.gz
+    dest: /tmp
+
+- name: Compile module
+  become: true
+  shell: cd /tmp/nagios-plugins-2.1.1;./configure --with-nagios-user=nagios --with-nagios-group=nagios; make all;
 
 - name: Restart Services
   become: true

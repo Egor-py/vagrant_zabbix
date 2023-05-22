@@ -34,6 +34,7 @@ Vagrant.configure("2") do |config|
     icinga_server.vm.box = "ubuntu/focal64"
     icinga_server.vm.hostname = "iciserver"
     icinga_server.vm.network "forwarded_port", guest: 80, host: 24021
+    icinga_server.vm.network "private_network", ip: "192.168.56.101"
     icinga_server.vm.provider "virtualbox" do |vb|
       vb.cpus = "1"
       vb.memory = "1024"
