@@ -82,7 +82,18 @@
 
 - name: Compile module
   become: true
-  shell: cd /tmp/nagios-plugins-2.1.1;./configure --with-nagios-user=nagios --with-nagios-group=nagios; make all;
+  shell: cd /tmp/nagios-plugins-2.1.1;./configure --with-nagios-user=nagios --with-nagios-group=nagios; sudo ./tools/setup; sudo ./configure; make; make install;
+
+- name: Add configuration host file in nagios.cfg
+  lineinfile:
+    path: /usr/local/nagios/etc/nagios.cfg
+    line: cfg_file=/usr/local/nagios/etc/objects/hosts.cfg
+  
+- name: Add configuration of hosts
+  template:
+    src: "hosts.cfg"
+    dest: "/usr/local/nagios/etc/objects/"
+    mode: 0777
 
 - name: Restart Services
   become: true

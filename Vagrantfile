@@ -1,23 +1,23 @@
 Vagrant.configure("2") do |config|
   
-  config.vm.define "zabbix_server" do |zabbix_server|
-    zabbix_server.vm.box = "ubuntu/focal64"
-    zabbix_server.vm.hostname = "zserver"
-    zabbix_server.vm.network "private_network", ip: "192.168.56.100"
-    zabbix_server.vm.network "forwarded_port", guest: 80, host: 24012
-    zabbix_server.vm.provider "virtualbox" do |vb|
+  config.vm.define "mon_server" do |mon_server|
+    mon_server.vm.box = "ubuntu/focal64"
+    mon_server.vm.hostname = "zserver"
+    mon_server.vm.network "private_network", ip: "192.168.56.100"
+    mon_server.vm.network "forwarded_port", guest: 80, host: 24012
+    mon_server.vm.provider "virtualbox" do |vb|
       vb.cpus = "1"
       vb.memory = "1024"
       vb.customize ["modifyvm", :id, "--nic3", "intnet"]
     end
-    zabbix_server.vm.provision "shell", inline: <<-SHELL
+    mon_server.vm.provision "shell", inline: <<-SHELL
       sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
       service ssh restart
     SHELL
-    zabbix_server.vm.provision "file", source: "zabbix_key", destination: "/home/vagrant/.ssh/"
-    zabbix_server.vm.provision "file", source: "zabbix_key.pub", destination: "/home/vagrant/.ssh/"
-    zabbix_server.vm.provision "file", source: "netconf/zabbix_server/50-vagrant.yaml", destination: "/home/vagrant/"
-    zabbix_server.vm.provision "shell", inline: <<-SHELL
+    mon_server.vm.provision "file", source: "zabbix_key", destination: "/home/vagrant/.ssh/"
+    mon_server.vm.provision "file", source: "zabbix_key.pub", destination: "/home/vagrant/.ssh/"
+    mon_server.vm.provision "file", source: "netconf/zabbix_server/50-vagrant.yaml", destination: "/home/vagrant/"
+    mon_server.vm.provision "shell", inline: <<-SHELL
       sudo apt update && sudo apt --assume-yes install ansible
       sudo sysctl -w net.ipv4.ip_forward=1
       sudo sysctl -p 
@@ -27,7 +27,7 @@ Vagrant.configure("2") do |config|
       sudo netplan generate
       sudo netplan apply
     SHELL
-    zabbix_server.vm.provision "file", source: "./ansible", destination: "/home/vagrant/"
+    mon_server.vm.provision "file", source: "./ansible", destination: "/home/vagrant/"
   end
 
   config.vm.define "icinga_server" do |icinga_server|
